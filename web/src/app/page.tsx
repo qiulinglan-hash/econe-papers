@@ -106,73 +106,44 @@ const tagMap: Record<string, string> = {};
         onTagChange={setSelectedTag}
       />
       
-      <main className="flex-1 max-w-4xl w-full mx-auto px-4 py-6">
-        {showCategoryView ? (
-          <section>
-            <div className="flex items-center gap-3 mb-4">
-              <div className="h-px flex-1 bg-gray-200"></div>
-              <h2 className="text-sm font-medium text-gray-500">
-                📂 {category}精选 {categoryPapers.length} 篇
-              </h2>
-              <div className="h-px flex-1 bg-gray-200"></div>
-            </div>
-            
-            {categoryPapers.length === 0 ? (
-              <div className="text-center py-12 text-gray-500">
-                暂无{category}分类的论文
-              </div>
-            ) : (
-              categoryPapers.map((paper, idx) => (
-                <PaperCard key={`${paper.id}-${idx}`} paper={paper} />
-              ))
-            )}
-          </section>
-        ) : showTagView ? (
-          <section>
-            <div className="flex items-center gap-3 mb-4">
-              <div className="h-px flex-1 bg-gray-200"></div>
-              <h2 className="text-sm font-medium text-gray-500">
-                🏷️ {selectedTag} {categoryPapers.length} 篇
-              </h2>
-              <div className="h-px flex-1 bg-gray-200"></div>
-            </div>
-            
-            {categoryPapers.length === 0 ? (
-              <div className="text-center py-12 text-gray-500">
-                暂无该标签的论文
-              </div>
-            ) : (
-              categoryPapers.map((paper, idx) => (
-                <PaperCard key={`${paper.id}-${idx}`} paper={paper} />
-              ))
-            )}
-          </section>
-        ) : (
-          <>
-            {days.map((dayPapers) => (
-              <DaySection 
-                key={dayPapers.date} 
-                dayPapers={dayPapers} 
-                selectedCategory={category}
-              />
-            ))}
-            
-            {loading && (
-              <div className="text-center py-8 text-gray-500">
-                加载中...
-              </div>
-            )}
-            
-            {!hasMore && days.length > 0 && (
-              <div className="text-center py-8 text-gray-400 text-sm">
-                已加载全部
-              </div>
-            )}
-          </>
-        )}
-      </main>
+     <main className="flex-1 max-w-4xl w-full mx-auto px-4 py-6">
+  {showCategoryView ? (
+    <section>
+      <div className="flex items-center gap-3 mb-4">
+        <div className="h-px flex-1 bg-gray-200"></div>
+        <h2 className="text-sm font-medium text-gray-500">
+          📂 {category}半导体研究精选 {categoryPapers.length} 篇
+        </h2>
+        <div className="h-px flex-1 bg-gray-200"></div>
+      </div>
       
-      <Footer />
-    </div>
-  );
-}
+      {categoryPapers.length === 0 ? (
+        <div className="text-center py-12 text-gray-500">
+          暂无【{category}】涉及的地缘政治或供应链论文
+        </div>
+      ) : (
+        categoryPapers.map((paper, idx) => (
+          <PaperCard key={`${paper.id}-${idx}`} paper={paper} />
+        ))
+      )}
+    </section>
+  ) : (
+    <>
+      {days.map((dayPapers) => (
+        <DaySection 
+          key={dayPapers.date} 
+          dayPapers={dayPapers} 
+          selectedCategory={category}
+        />
+      ))}
+      
+      {loading && (
+        <div className="text-center py-8 text-gray-500">加载中...</div>
+      )}
+      
+      {!hasMore && days.length > 0 && (
+        <div className="text-center py-8 text-gray-400 text-sm">已加载全部最新动态</div>
+      )}
+    </>
+  )}
+</main>
