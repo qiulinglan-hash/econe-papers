@@ -9,9 +9,7 @@ import { DayPapers, Paper, Category } from '@/types';
 
 export default function Home() {
   const [category, setCategory] = useState<Category>('全部');
-  const [selectedTag, setSelectedTag] = useState('全部标签');
   const [days, setDays] = useState<DayPapers[]>([]);
-  const [loading, setLoading] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   
   const loadMore = useCallback(async () => {
@@ -56,39 +54,7 @@ export default function Home() {
   }, []);
   
   // Tag filter mapping
-  const tagMap: Record<string, string> = {
-    '博弈论': 'Game Theory',
-    '数字经济': 'Digital Economy',
-    '平台经济': 'Platform Economics',
-    '技术经济': 'Technology Economics',
-    '行为经济学': 'Behavioral Economics',
-    '计量+ML': 'Econometrics + ML',
-    '实验经济学': 'Experimental Economics',
-    '劳动经济学': 'Labor Economics',
-    '环境经济学': 'Environmental Economics',
-    '金融科技': 'FinTech'
-  };
-  
-  useEffect(() => {
-    if (selectedTag !== '全部标签') {
-      const enTag = tagMap[selectedTag] || selectedTag;
-      const papers: Paper[] = [];
-      days.forEach(day => {
-        day.papers.forEach(paper => {
-          const tags = paper.tags || [];
-          if (tags.includes(enTag)) {
-            papers.push(paper);
-          }
-        });
-      });
-      papers.sort((a, b) => (b.scores?.overall || 0) - (a.scores?.overall || 0));
-      setCategoryPapers(papers);
-      setShowTagView(true);
-    } else {
-      setShowTagView(false);
-      setCategoryPapers([]);
-    }
-  }, [selectedTag, days]);
+const tagMap: Record<string, string> = {};
   
   const [categoryPapers, setCategoryPapers] = useState<Paper[]>([]);
   const [showCategoryView, setShowCategoryView] = useState(false);
