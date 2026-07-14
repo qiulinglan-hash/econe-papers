@@ -2,21 +2,11 @@
 
 import { Category } from '@/types';
 
-const CATEGORIES = ['全部', '金融', '计量', '理论', '宏观', '微观', '行为', '产业', '环境', '劳动', '其他'];
+// 1. 修改第一排分类为核心地缘政治国家/地区
+export const categories = ['全部', '中国', '美国', '日本', '欧洲', '中国台湾', '韩国', '澳大利亚', '国际/多边'];
 
-const TAGS = [
-  '全部标签',
-  '博弈论',
-  '数字经济', 
-  '平台经济',
-  '技术经济',
-  '行为经济学',
-  '计量+ML',
-  '实验经济学',
-  '劳动经济学',
-  '环境经济学',
-  '金融科技'
-];
+// 2. 将第二排的旧经济学标签直接改成空数组，彻底在界面上抹去它们
+export const tags = [];
 
 interface HeaderProps {
   selectedCategory: Category;
