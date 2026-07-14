@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """
-ArXiv 经济学论文抓取 + AI 分析脚本
-用法: python3 scrape_arxiv.py [--max 50]
+ArXiv 半导体全球经济与地缘政治论文抓取 + AI 分析脚本
 """
 
 import argparse
@@ -9,7 +8,7 @@ import json
 import os
 import re
 import time
-from datetime import datetime, timedelta
+from datetime import datetime
 from urllib.parse import urlencode
 
 import requests
@@ -19,35 +18,25 @@ from bs4 import BeautifulSoup
 MINIMAX_API_KEY = os.getenv("MINIMAX_API_KEY", "")
 MINIMAX_BASE_URL = "https://api.minimaxi.com/v1/text/chatcompletion_v2"
 
-# ArXiv 经济学相关分类
+# 1. 关注的学科分类：经济学、量化金融、计算机与社会
 ARXIV_CATEGORIES = [
-    # 量化金融 (Quantitative Finance)
-    "q-fin.EC",
-    "q-fin.GN", 
-    "q-fin.MF",
-    "q-fin.PM",
-    "q-fin.RM",
-    "q-fin.ST",
-    "q-fin.TR",
-    # 经济分类 (Economics)
-    "econ.GN",   # General Economics
-    "econ.EM",   # Econometrics
-    "econ.TH",   # Theoretical Economics
-    "econ.CO",   # Computational Economics
-    "econ.EC",   # Econometrics (alternative)
-    "econ.HO",   # Economic History
-    "econ.IV",   # International Economics
-    "econ.ME",   # Microeconomics
-    "econ.MA",   # Macroeconomics
-    "econ.PE",   # Political Economy
-    "econ.WR",   # Labor Economics
+    "econ.GN",     # 通用经济学 (General Economics)
+    "econ.EM",     # 计量经济学 (Econometrics)
+    "q-fin.EC",    # 金融经济学 (Economics in Finance)
+    "cs.CY",       # 计算机与社会 (Computers and Society - 经常有芯片法案、地缘政治、供应链的讨论)
 ]
 
-
 def search_arxiv(category: str, max_results: int = 200) -> list:
-    """从 ArXiv 搜索论文（不分日期）"""
+    """从 ArXiv 搜索半导体地缘政治、经济、供应链相关的最新论文"""
     base_url = "https://export.arxiv.org/api/query"
-    query = f"cat:{category}"
+    
+    # 半导体核心词
+    semi_terms = '("semiconductor" OR "microchip" OR "integrated circuit" OR "foundry" OR "lithography" OR "silicon")'
+    # 经济与地缘政治核心词
+    econ_terms = '("geopolitics" OR "supply chain" OR "value chain" OR "trade" OR "policy" OR "tariff" OR "sanction" OR "subsidy" OR "industrial policy" OR "market")'
+    
+    # 组合查询：必须同时满足（半导体相关）和（经济/政治相关）
+    query = f"cat:{category} AND {semi_terms} AND {econ_terms}"
     
     params = {
         "search_query": query,
@@ -58,7 +47,7 @@ def search_arxiv(category: str, max_results: int = 200) -> list:
     }
     
     url = f"{base_url}?{urlencode(params)}"
-    print(f"  🔍 Searching {category} (max {max_results})...")
+    print(f"   🔍 正在检索 {category} 分类下的半导体经济学论文...")
     
     try:
         response = requests.get(url, timeout=60)
@@ -89,13 +78,12 @@ def search_arxiv(category: str, max_results: int = 200) -> list:
             if paper["title"]:
                 papers.append(paper)
         
-        print(f"     Found {len(papers)} papers")
+        print(f"      找到 {len(papers)} 篇相关论文")
         return papers
         
     except Exception as e:
-        print(f"     Error: {e}")
+        print(f"      Error: {e}")
         return []
-
 
 def call_minimax(prompt: str) -> str:
     """调用 MiniMax API"""
@@ -111,7 +99,7 @@ def call_minimax(prompt: str) -> str:
     payload = {
         "model": "MiniMax-Text-01",
         "messages": [
-            {"role": "system", "content": "你是一个专业的经济学学术助手，擅长分析学术论文。请只返回JSON，不要其他内容。"},
+            {"role": "system", "content": "你是一个专业的半导体产业经济学与地缘政治专家。请只返回 JSON，不要其他内容。"},
             {"role": "user", "content": prompt}
         ],
         "temperature": 0.7
@@ -131,10 +119,9 @@ def call_minimax(prompt: str) -> str:
         print(f"  ⚠️ MiniMax API error: {e}")
         return ""
 
-
 def analyze_paper(paper: dict) -> dict:
-    """用 AI 分析论文"""
-    prompt = f"""请分析以下 ArXiv 经济学论文，提取关键信息并评分。
+    """用 AI 深度分析半导体经济学论文"""
+    prompt = f"""请分析以下 ArXiv 上关于半导体产业经济与地缘政治的论文。
 
 标题: {paper['title']}
 作者: {', '.join(paper['authors'])}
@@ -142,9 +129,9 @@ def analyze_paper(paper: dict) -> dict:
 
 请按以下 JSON 格式返回分析结果（只返回 JSON，不要其他内容）:
 {{
-    "chineseTitle": "中文标题",
-    "chineseAbstract": "中文摘要（100-200字）",
-    "researchField": "经济学子领域（宏观/微观/计量/金融/行为/产业/劳动/发展/环境/其他）",
+    "chineseTitle": "翻译成准确、学术通顺的中文标题",
+    "chineseAbstract": "中文摘要（100-200字，要求学术术语准确，体现地缘政治、供应链或经济学影响）",
+    "researchField": "研究子领域（地缘政治与政策/供应链与价值链/市场与产业经济/技术创新与博弈/其他）",
     "keywords": ["关键词1", "关键词2", "关键词3"],
     "scores": {{
         "overall": 8,
@@ -152,16 +139,14 @@ def analyze_paper(paper: dict) -> dict:
         "quality": 4,
         "readability": 4
     }},
-    "summary": "一句话总结（20字以内）"
+    "summary": "一句话总结（20字以内，说明该研究对半导体行业的经济学启示或政策影响）"
 }}
 """
     
     result = call_minimax(prompt)
     
-    # 解析 JSON
     if result:
         try:
-            # 尝试提取 JSON
             json_match = re.search(r'\{[\s\S]*\}', result)
             if json_match:
                 analysis = json.loads(json_match.group())
@@ -170,7 +155,7 @@ def analyze_paper(paper: dict) -> dict:
         except json.JSONDecodeError as e:
             print(f"  ⚠️ JSON parse error: {e}")
     
-    # 如果失败，返回原始数据 + 默认评分
+    # 失败降级
     scores = calculate_initial_scores(paper)
     field = determine_research_field(paper)
     
@@ -184,9 +169,8 @@ def analyze_paper(paper: dict) -> dict:
         "summary": paper["abstract"][:50] if paper["abstract"] else ""
     }
 
-
 def calculate_initial_scores(paper: dict) -> dict:
-    """基于论文特征计算初始评分"""
+    """基于关键词简单计算初始评分"""
     title = paper.get("title", "").lower()
     abstract = paper.get("abstract", "").lower()
     
@@ -194,29 +178,17 @@ def calculate_initial_scores(paper: dict) -> dict:
     quality = 3.0
     readability = 3.0
     
-    # 关键词匹配提高选题新颖度
-    novelty_keywords = ["novel", "new", "first", "improve", "extend", "approach", "method", "theory"]
+    novelty_keywords = ["policy", "chips act", "geopolitics", "tariff", "trade war", "sanction"]
     for kw in novelty_keywords:
         if kw in abstract or kw in title:
-            novelty = min(5.0, novelty + 0.3)
-    
-    # 热门方法提高研究水平
-    method_keywords = ["deep learning", "neural network", "transformer", "causal", "reinforcement", 
-                      "bayesian", "randomized", "experiment", "robust", "optimal"]
-    for kw in method_keywords:
-        if kw in abstract:
+            novelty = min(5.0, novelty + 0.4)
             quality = min(5.0, quality + 0.2)
-    
-    # 作者数量适中可读性更好
+            
     authors = paper.get("authors", [])
     if 2 <= len(authors) <= 5:
         readability = 4.0
-    elif len(authors) > 8:
-        readability = 2.5
     
-    # 计算综合评分
     overall = novelty * 0.4 + quality * 0.4 + readability * 0.2
-    
     return {
         "overall": round(overall, 1),
         "novelty": round(novelty, 1),
@@ -224,71 +196,45 @@ def calculate_initial_scores(paper: dict) -> dict:
         "readability": round(readability, 1)
     }
 
-
 def determine_research_field(paper: dict) -> str:
-    """基于分类和内容确定研究领域"""
+    """分类识别：地缘政治/供应链/市场经济"""
     title = paper.get("title", "").lower()
     abstract = paper.get("abstract", "").lower()
-    categories = paper.get("categories", [])
     
     field_keywords = {
-        "计量": ["econometrics", "regression", "causal", "treatment effect", "identification", 
-                 "instrumental", "propensity", "matching", "did", "estimator"],
-        "金融": ["finance", "market", "asset", "portfolio", "stock", "price", "trading",
-                 "investment", "risk", "option", "derivative", "bank", "credit"],
-        "宏观": ["macro", "gdp", "inflation", "monetary", "fiscal", "growth", "business cycle"],
-        "微观": ["micro", "consumer", "producer", "firm", "competition", "auction", "utility"],
-        "行为": ["behavior", "psychology", "cognitive", "bias", "heuristic", "nudge"],
-        "产业": ["industrial", "organization", "oligopoly", "merger", "antitrust"],
-        "劳动": ["labor", "employment", "wage", "skill", "education", "worker"],
-        "环境": ["environment", "climate", "carbon", "pollution", "energy", "sustainability"],
-        "理论": ["theory", "equilibrium", "game", "mechanism", "optimal", "proof"]
+        "地缘政治与政策": ["geopolitics", "policy", "chips act", "sanction", "subsidy", "tariff", "trade war", "national security"],
+        "供应链与价值链": ["supply chain", "value chain", "logistics", "resilience", "foundry", "shortage", "disruption"],
+        "市场与产业经济": ["market", "competition", "oligopoly", "cost", "investment", "price", "firm", "industry economics"]
     }
-    
-    for cat in categories:
-        if cat == "econ.EM": return "计量"
-        elif cat == "econ.TH": return "理论"
-        elif cat == "econ.MA": return "宏观"
-        elif cat == "econ.ME": return "微观"
-        elif cat == "econ.WR": return "劳动"
-        elif cat.startswith("q-fin."): return "金融"
     
     for field, keywords in field_keywords.items():
         for kw in keywords:
             if kw in abstract or kw in title:
                 return field
     
-    return "其他"
-
+    return "其他半导体经济学"
 
 def main():
-    parser = argparse.ArgumentParser(description="ArXiv 经济学论文抓取 + AI 分析")
+    parser = argparse.ArgumentParser(description="ArXiv 半导体经济学论文抓取")
     parser.add_argument("--max", type=int, default=200, help="每个分类最多抓取数量")
-    parser.add_argument("--analyze", type=int, default=30, help="AI 分析前 N 篇论文（每天）")
+    parser.add_argument("--analyze", type=int, default=30, help="AI 分析前 N 篇")
     parser.add_argument("--output", type=str, default="papers.json", help="输出文件名")
     args = parser.parse_args()
     
-    # 检查 API Key
     if not MINIMAX_API_KEY:
-        print("⚠️ MINIMAX_API_KEY not found in environment!")
-        print("   Run: source ~/.zshrc before running this script")
+        print("⚠️ MINIMAX_API_KEY not found!")
     
-    print(f"\n📡 抓取 ArXiv 经济学论文...")
-    print(f"   每个分类抓取 {args.max} 篇")
+    print(f"\n📡 正在从 ArXiv 检索【半导体地缘政治与全球经济】相关研究...")
     
     all_papers = []
-    
     for category in ARXIV_CATEGORIES:
         papers = search_arxiv(category, args.max)
-        
         for paper in papers:
-            # 检查是否已存在（避免重复）
             if not any(p["id"] == paper["id"] for p in all_papers):
                 all_papers.append(paper)
-        
         time.sleep(0.5)
     
-    print(f"\n📊 共抓取 {len(all_papers)} 篇论文")
+    print(f"\n📊 过滤出 {len(all_papers)} 篇半导体经济学/政治学相关论文")
     
     # 按日期分组
     from collections import defaultdict
@@ -297,32 +243,26 @@ def main():
         date = paper.get("published", "unknown")
         by_date[date].append(paper)
     
-    # 截止日期：2026年1月1日
+    # 截止日期
     cutoff_date = "2026-01-01"
-    
-    # AI 分析 - 按日期分别分析
     analyzed_papers_by_date = {}
     
     if by_date and MINIMAX_API_KEY:
-        print(f"\n✍️  AI 分析论文...")
-        
+        print(f"\n✍️ AI 深度解读分析中...")
         for date_str in sorted(by_date.keys(), reverse=True):
             if date_str < cutoff_date:
-                continue  # 跳过2026年1月1日之前的
+                continue
             
             papers = by_date[date_str]
-            print(f"\n  📅 {date_str}: 分析前 {min(args.analyze, len(papers))} 篇")
+            print(f"\n  📅 {date_str}: 正在用 AI 深度分析前 {min(args.analyze, len(papers))} 篇高价值论文...")
             
             analyzed_day_papers = []
-            
-            # 分析前 N 篇
             for i, paper in enumerate(papers[:args.analyze]):
                 print(f"     [{i+1}/{min(args.analyze, len(papers))}] Processing...")
                 analyzed = analyze_paper(paper)
                 analyzed_day_papers.append(analyzed)
-                time.sleep(0.8)  # 避免 API 限流
+                time.sleep(0.8)
             
-            # 剩余论文添加默认字段
             for paper in papers[args.analyze:]:
                 analyzed_day_papers.append({
                     **paper,
@@ -337,7 +277,7 @@ def main():
             analyzed_papers_by_date[date_str] = analyzed_day_papers
             
     elif by_date:
-        print("\n⚠️ 跳过 AI 分析（无 API Key）")
+        print("\n⚠️ 缺失 MiniMax API KEY，直接跳过 AI 润色并生成基本字段...")
         for date_str, papers in by_date.items():
             if date_str < cutoff_date:
                 continue
@@ -354,14 +294,10 @@ def main():
                 })
             analyzed_papers_by_date[date_str] = analyzed_day_papers
     
-    # 按日期分组并排序精选
     day_papers = []
     for date_str in sorted(analyzed_papers_by_date.keys(), reverse=True):
         papers = analyzed_papers_by_date[date_str]
-        # 按评分排序
         papers.sort(key=lambda x: x.get("scores", {}).get("overall", 0), reverse=True)
-        
-        # 精选 30 篇
         selected = papers[:30]
         
         day_papers.append({
@@ -376,12 +312,10 @@ def main():
         "total": sum(d["total"] for d in day_papers)
     }
     
-    # 保存到 backend
     output_path = os.path.join(os.path.dirname(__file__), args.output)
     with open(output_path, "w", encoding="utf-8") as f:
         json.dump(output, f, ensure_ascii=False, indent=2)
     
-    # 同时复制到 web/src/lib/data.json
     web_data_path = os.path.join(
         os.path.dirname(os.path.dirname(__file__)), 
         "web", "src", "lib", "data.json"
@@ -389,11 +323,7 @@ def main():
     with open(web_data_path, "w", encoding="utf-8") as f:
         json.dump(output, f, ensure_ascii=False, indent=2)
     
-    print(f"\n✅ 已保存到:")
-    print(f"   - {output_path}")
-    print(f"   - {web_data_path}")
-    print(f"\n📈 精选论文: {sum(d['total'] for d in day_papers)} 篇，覆盖 {len(day_papers)} 天")
-
+    print(f"\n✅ 重新配置成功！半导体全球经济学数据已保存至 web 目录。")
 
 if __name__ == "__main__":
     main()
