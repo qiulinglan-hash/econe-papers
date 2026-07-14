@@ -28,19 +28,6 @@ export interface DayPapers {
   total: number;
 }
 
-export type Category = 
-  | '全部'
-  | '金融'
-  | '计量'
-  | '理论'
-  | '宏观'
-  | '微观'
-  | '行为'
-  | '产业'
-  | '环境'
-  | '劳动'
-  | '其他';
+export type Category = '全部' | '中国' | '美国' | '日本' | '欧洲' | '中国台湾' | '韩国' | '澳大利亚' | '国际/多边';
 
-export const CATEGORIES: Category[] = [
-  '全部', '金融', '计量', '理论', '宏观', '微观', '行为', '产业', '环境', '劳动', '其他'
-];
+export const CATEGORIES = ['全部', '中国', '美国', '日本', '欧洲', '中国台湾', '韩国', '澳大利亚', '国际/多边'] as const;
