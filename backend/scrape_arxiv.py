@@ -197,22 +197,29 @@ def calculate_initial_scores(paper: dict) -> dict:
     }
 
 def determine_research_field(paper: dict) -> str:
-    """分类识别：地缘政治/供应链/市场经济"""
+    """基于分类和内容，精准识别半导体地缘政治相关的国家和地区标签"""
     title = paper.get("title", "").lower()
     abstract = paper.get("abstract", "").lower()
     
+    # 针对中美半导体博弈相关的核心国家/地区和关键供应链节点的词库
     field_keywords = {
-        "地缘政治与政策": ["geopolitics", "policy", "chips act", "sanction", "subsidy", "tariff", "trade war", "national security"],
-        "供应链与价值链": ["supply chain", "value chain", "logistics", "resilience", "foundry", "shortage", "disruption"],
-        "市场与产业经济": ["market", "competition", "oligopoly", "cost", "investment", "price", "firm", "industry economics"]
+        "中国": ["china", "chinese", "beijing", "shanghai", "smic", "huawei", "domestic market"],
+        "美国": ["us", "usa", "united states", "washington", "chips act", "biden", "american", "intel", "nvidia"],
+        "日本": ["japan", "japanese", "tokyo", "rapidus", "tokyo electron", "tsmc kumamoto"],
+        "欧洲": ["europe", "european", "eu", "germany", "asml", "netherlands", "dutch"],
+        "中国台湾": ["taiwan", "taiwanese", "tsmc", "taipei", "hsinchu"],
+        "韩国": ["korea", "korean", "seoul", "samsung", "sk hynix"],
+        "澳大利亚": ["australia", "australian", "canberra", "critical minerals", "quad"],
     }
     
+    # 优先匹配标题，其次匹配摘要
     for field, keywords in field_keywords.items():
         for kw in keywords:
-            if kw in abstract or kw in title:
+            # 增加边界匹配，防止 us 误判（例如 business 里包含 us）
+            if f" {kw} " in f" {title} " or f" {kw} " in f" {abstract} ":
                 return field
-    
-    return "其他半导体经济学"
+                
+    return "国际/多边"
 
 def main():
     parser = argparse.ArgumentParser(description="ArXiv 半导体经济学论文抓取")
